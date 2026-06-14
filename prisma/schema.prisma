@@ -6,6 +6,8 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Existing NFC/GPS models (unchanged) ─────────────────────────────────────
+
 model Object {
   id          Int      @id @default(autoincrement())
   name        String
@@ -40,5 +42,65 @@ model Admin {
   id        Int      @id @default(autoincrement())
   username  String   @unique
   password  String
+  createdAt DateTime @default(now())
+}
+
+// ─── Tourism Platform models ──────────────────────────────────────────────────
+
+model Location {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String
+  coverImage  String?
+  videoUrl    String?
+  latitude    Float?
+  longitude   Float?
+  featured    Boolean    @default(false)
+  items       Item[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  icon      String?
+  items     Item[]
+  createdAt DateTime @default(now())
+}
+
+model Item {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String
+  audioUrl    String?
+  videoUrl    String?
+  duration    String?
+  facts       String?
+  habitat     String?
+  conservation String?
+  rating      Float      @default(0)
+  featured    Boolean    @default(false)
+  viewCount   Int        @default(0)
+  location    Location   @relation(fields: [locationId], references: [id])
+  locationId  Int
+  category    Category   @relation(fields: [categoryId], references: [id])
+  categoryId  Int
+  media       Media[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Media {
+  id        Int      @id @default(autoincrement())
+  url       String
+  type      String   // image | video | audio
+  caption   String?
+  order     Int      @default(0)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    Int
   createdAt DateTime @default(now())
 }

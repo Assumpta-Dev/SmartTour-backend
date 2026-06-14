@@ -8,8 +8,11 @@ import prisma from './config/db';
 
 import objectRoutes   from './routes/objectRoutes';
 import aiRoutes       from './routes/aiRoutes';
-import geofenceRoutes from './routes/geofenceRoutes';
 import adminRoutes    from './routes/adminRoutes';
+import tourismRoutes  from './routes/tourismRoutes';
+import geofenceRoutes from './routes/geofenceRoutes';
+import uploadRoutes   from './routes/uploadRoutes';
+import zoneRoutes     from './routes/zoneRoutes';
 import { rateLimiter } from './middleware/rateLimiter';
 
 const app  = express();
@@ -20,10 +23,13 @@ app.use(cors());
 app.use(express.json());
 app.use(rateLimiter);
 
-app.use('/api',          objectRoutes);
-app.use('/api/ai',       aiRoutes);
-app.use('/api/geofence', geofenceRoutes);
-app.use('/api/admin',    adminRoutes);
+app.use('/api',           objectRoutes);
+app.use('/api/ai',        aiRoutes);
+app.use('/api/admin',     adminRoutes);
+app.use('/api',           tourismRoutes);
+app.use('/api/geofence',  geofenceRoutes);
+app.use('/api/upload',    uploadRoutes);
+app.use('/api/zones',     zoneRoutes);
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
