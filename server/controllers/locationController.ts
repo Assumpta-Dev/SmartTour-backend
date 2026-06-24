@@ -36,8 +36,10 @@ export async function createLocation(req: Request, res: Response) {
     if (!name || !description) return res.status(400).json({ error: 'name and description are required.' });
     const files = req.files as Record<string, Express.Multer.File[]>;
     const coverImage = (files?.image?.[0] as any)?.path;
+    const uploadedVideo = (files?.video?.[0] as any)?.path;
     const loc = await svc.createLocation({
-      name, slug: slugify(name), description, coverImage, videoUrl,
+      name, slug: slugify(name), description, coverImage,
+      videoUrl: uploadedVideo ?? videoUrl,
       latitude:  latitude  ? parseFloat(latitude)  : undefined,
       longitude: longitude ? parseFloat(longitude) : undefined,
       featured:  featured === 'true',
@@ -48,13 +50,18 @@ export async function createLocation(req: Request, res: Response) {
 
 export async function updateLocation(req: Request, res: Response) {
   try {
-    const id   = parseInt(req.params.id);
-    const data: any = { ...req.body };
+    const id = parseInt(req.params.id);
+    const { name, description, videoUrl, latitude, longitude, featured } = req.body;
+    const data: any = {};
+    if (name)        data.name        = name;
+    if (description) data.description = description;
+    if (videoUrl)    data.videoUrl    = videoUrl;
+    if (latitude)    data.latitude    = parseFloat(latitude);
+    if (longitude)   data.longitude   = parseFloat(longitude);
+    if (featured !== undefined) data.featured = featured === 'true';
     const files = req.files as Record<string, Express.Multer.File[]>;
     if (files?.image?.[0]) data.coverImage = (files.image[0] as any).path;
-    if (data.latitude)  data.latitude  = parseFloat(data.latitude);
-    if (data.longitude) data.longitude = parseFloat(data.longitude);
-    if (data.featured !== undefined) data.featured = data.featured === 'true';
+    if (files?.video?.[0]) data.videoUrl   = (files.video[0] as any).path;
     res.json(await svc.updateLocation(id, data));
   } catch (e) { handleErr(res, e); }
 }

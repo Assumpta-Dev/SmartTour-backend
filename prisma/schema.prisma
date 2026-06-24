@@ -63,12 +63,23 @@ model Location {
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String   @unique
-  icon      String?
-  items     Item[]
-  createdAt DateTime @default(now())
+  id          Int             @id @default(autoincrement())
+  name        String
+  slug        String          @unique
+  icon        String?
+  description String?
+  items       Item[]
+  images      CategoryImage[]
+  createdAt   DateTime        @default(now())
+}
+
+model CategoryImage {
+  id         Int      @id @default(autoincrement())
+  url        String
+  order      Int      @default(0)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int
+  createdAt  DateTime @default(now())
 }
 
 model Item {

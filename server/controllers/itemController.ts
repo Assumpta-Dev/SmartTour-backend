@@ -49,7 +49,7 @@ export async function createItem(req: Request, res: Response) {
       locationId: parseInt(locationId),
       categoryId: parseInt(categoryId),
       audioUrl: (files?.audio?.[0] as any)?.path ?? audioUrl,
-      videoUrl, duration, facts, habitat, conservation,
+      videoUrl: (files?.video?.[0] as any)?.path ?? videoUrl, duration, facts, habitat, conservation,
       rating: rating ? parseFloat(rating) : undefined,
       featured: featured === 'true',
     });
@@ -69,6 +69,7 @@ export async function updateItem(req: Request, res: Response) {
     const data: any = { ...req.body };
     const files = req.files as Record<string, Express.Multer.File[]>;
     if (files?.audio?.[0]) data.audioUrl = (files.audio[0] as any).path;
+    if (files?.video?.[0]) data.videoUrl = (files.video[0] as any).path;
     if (data.locationId) data.locationId = parseInt(data.locationId);
     if (data.categoryId) data.categoryId = parseInt(data.categoryId);
     if (data.rating)     data.rating     = parseFloat(data.rating);
