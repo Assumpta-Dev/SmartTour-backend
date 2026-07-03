@@ -22,7 +22,7 @@ export async function createCategory(req: Request, res: Response) {
   try {
     const { name, slug, icon, description } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required.' });
-    const cat = await svc.createCategory({ name, slug: slug || slugify(name), icon, description });
+    const cat   = await svc.createCategory({ name, slug: slug || slugify(name), icon, description });
     const files = req.files as Record<string, Express.Multer.File[]>;
     if (files?.images) {
       for (let i = 0; i < files.images.length; i++) {
@@ -42,13 +42,12 @@ export async function updateCategory(req: Request, res: Response) {
     if (slug)        data.slug        = slug;
     if (icon)        data.icon        = icon;
     if (description !== undefined) data.description = description;
-    const cat = await svc.updateCategory(id, data);
+    const cat   = await svc.updateCategory(id, data);
     const files = req.files as Record<string, Express.Multer.File[]>;
-    if (files?.images) {
-      // append new images — existing ones are preserved
-      const existing = cat.images?.length ?? 0;
+    if (files?.images && files.images.length > 0) {
+      await Promise.all((cat.images ?? []).map(img => svc.deleteCategoryImage(img.id)));
       for (let i = 0; i < files.images.length; i++) {
-        await svc.addCategoryImage(id, (files.images[i] as any).path, existing + i);
+        await svc.addCategoryImage(id, (files.images[i] as any).path, i);
       }
     }
     res.json(await svc.getCategoryBySlug(cat.slug));

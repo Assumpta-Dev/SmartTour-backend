@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import * as svc from '../services/itemService';
-import cloudinary from '../config/cloudinary';
+import { destroyCloudinary } from '../config/cloudinary';
 
 function slugify(str: string) {
   return str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -49,11 +49,11 @@ export async function createItem(req: Request, res: Response) {
       locationId: parseInt(locationId),
       categoryId: parseInt(categoryId),
       audioUrl: (files?.audio?.[0] as any)?.path ?? audioUrl,
-      videoUrl: (files?.video?.[0] as any)?.path ?? videoUrl, duration, facts, habitat, conservation,
-      rating: rating ? parseFloat(rating) : undefined,
+      videoUrl: (files?.video?.[0] as any)?.path ?? videoUrl,
+      duration, facts, habitat, conservation,
+      rating:   rating   ? parseFloat(rating)   : undefined,
       featured: featured === 'true',
     });
-    // Upload all images as media
     if (files?.images) {
       for (let i = 0; i < files.images.length; i++) {
         await svc.addMedia({ itemId: item.id, url: (files.images[i] as any).path, type: 'image', order: i });
@@ -65,22 +65,35 @@ export async function createItem(req: Request, res: Response) {
 
 export async function updateItem(req: Request, res: Response) {
   try {
-    const id   = parseInt(req.params.id);
+    const id       = parseInt(req.params.id);
     const data: any = { ...req.body };
-    const files = req.files as Record<string, Express.Multer.File[]>;
-    if (files?.audio?.[0]) data.audioUrl = (files.audio[0] as any).path;
-    if (files?.video?.[0]) data.videoUrl = (files.video[0] as any).path;
+    const files    = req.files as Record<string, Express.Multer.File[]>;
+    const existing = await svc.getItemById(id);
+    if (files?.audio?.[0]) {
+      if (existing?.audioUrl?.includes('cloudinary')) await destroyCloudinary(existing.audioUrl, 'video');
+      data.audioUrl = (files.audio[0] as any).path;
+    }
+    if (files?.video?.[0]) {
+      if (existing?.videoUrl?.includes('cloudinary')) await destroyCloudinary(existing.videoUrl, 'video');
+      data.videoUrl = (files.video[0] as any).path;
+    } else if (data.videoUrl === undefined) {
+      delete data.videoUrl;
+    }
     if (data.locationId) data.locationId = parseInt(data.locationId);
     if (data.categoryId) data.categoryId = parseInt(data.categoryId);
     if (data.rating)     data.rating     = parseFloat(data.rating);
     if (data.featured !== undefined) data.featured = data.featured === 'true';
-    const item = await svc.updateItem(id, data);
-    if (files?.images) {
+    await svc.updateItem(id, data);
+    if (files?.images && files.images.length > 0) {
+      await Promise.all((existing?.media.filter(m => m.type === 'image') ?? []).map(async m => {
+        await destroyCloudinary(m.url);
+        await svc.deleteMedia(m.id);
+      }));
       for (let i = 0; i < files.images.length; i++) {
         await svc.addMedia({ itemId: id, url: (files.images[i] as any).path, type: 'image', order: i });
       }
     }
-    res.json(item);
+    res.json(await svc.getItemById(id));
   } catch (e) { handleErr(res, e); }
 }
 
@@ -89,10 +102,7 @@ export async function deleteItem(req: Request, res: Response) {
     const id   = parseInt(req.params.id);
     const item = await svc.getItemById(id);
     if (!item) return res.status(404).json({ error: 'Item not found.' });
-    for (const m of item.media) {
-      const pub = m.url.split('/').slice(-2).join('/').replace(/\.[^/.]+$/, '');
-      await cloudinary.uploader.destroy(pub, { resource_type: m.type === 'video' ? 'video' : 'image' }).catch(() => null);
-    }
+    await Promise.all(item.media.map(m => destroyCloudinary(m.url, m.type === 'video' ? 'video' : 'image')));
     await svc.deleteItem(id);
     res.json({ message: 'Item deleted.' });
   } catch (e) { handleErr(res, e); }

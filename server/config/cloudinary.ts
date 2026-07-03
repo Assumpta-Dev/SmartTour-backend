@@ -1,6 +1,6 @@
-import cloudinary, { v2 } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { v2 } from 'cloudinary';
 import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
@@ -8,27 +8,20 @@ v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-const imageStorage = new CloudinaryStorage({
+const storage = new CloudinaryStorage({
   cloudinary: v2,
-  params: {
-    folder:          'smart-tourism/images',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation:  [{ width: 1200, crop: 'limit' }],
-  } as object,
+  params: (_req: any, file: Express.Multer.File) => {
+    if (file.fieldname === 'video') return { folder: 'smart-tourism/videos', resource_type: 'video' };
+    if (file.fieldname === 'audio') return { folder: 'smart-tourism/audio',  resource_type: 'video' };
+    return { folder: 'smart-tourism/images', resource_type: 'image' };
+  },
 });
 
-const audioStorage = new CloudinaryStorage({
-  cloudinary: v2,
-  params: {
-    folder:          'smart-tourism/audio',
-    allowed_formats: ['mp3', 'wav', 'ogg', 'm4a'],
-    resource_type:   'video',
-  } as object,
-});
+export const upload = multer({ storage });
 
-export const uploadImage = multer({ storage: imageStorage });
-export const uploadAudio = multer({ storage: audioStorage });
-export const upload      = multer({
-  storage: multer.memoryStorage(),
-});
+export function destroyCloudinary(url: string, resourceType: 'image' | 'video' = 'image') {
+  const pub = url.split('/').slice(-2).join('/').replace(/\.[^/.]+$/, '');
+  return v2.uploader.destroy(pub, { resource_type: resourceType }).catch(() => null);
+}
+
 export default v2;
