@@ -11,6 +11,6 @@
     "typeRoots": ["./node_modules/@types"],
     "types": ["node"]
   },
-  "include": ["server", "prisma", "prisma.config.ts"],
+  "include": ["server", "prisma", "prisma.config.ts", "migrate.ts"],
   "exclude": ["node_modules", "dist"]
 }
